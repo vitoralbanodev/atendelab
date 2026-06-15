@@ -21,6 +21,9 @@ SET time_zone = "+00:00";
 -- Banco de dados: `atendelab`
 --
 
+CREATE DATABASE IF NOT EXISTS `atendelab` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `atendelab`;
+
 -- --------------------------------------------------------
 
 --
@@ -62,6 +65,7 @@ CREATE TABLE `endereco` (
 
 CREATE TABLE `pessoas` (
   `id_pessoa` int(11) NOT NULL,
+  `nome` varchar(255) NOT NULL,
   `cpf` varchar(11) DEFAULT NULL,
   `telefone` varchar(15) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,

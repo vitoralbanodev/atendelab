@@ -1,0 +1,119 @@
+<?php
+// Controller for `pessoas` table
+
+class PessoasController
+{
+    private PDO $pdo;
+
+    public function __construct()
+    {
+        require __DIR__ . '/../../config/database.php';
+        $this->pdo = $pdo;
+    }
+
+    public function listar(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $sql = 'SELECT id_pessoa, nome, cpf, telefone, email, data_nascimento, id_endereco
+                FROM pessoas
+                ORDER BY id_pessoa DESC';
+        $stmt = $this->pdo->query($sql);
+        echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    public function buscarPorId(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        if (!$id) { http_response_code(400); echo json_encode(['erro'=>'ID inválido.']); return; }
+
+        $sql = 'SELECT id_pessoa, nome, cpf, telefone, email, data_nascimento, id_endereco FROM pessoas WHERE id_pessoa = :id';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) { http_response_code(404); echo json_encode(['erro'=>'Pessoa não encontrada.']); return; }
+        echo json_encode($row, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    public function criar(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $nome = trim($_POST['nome'] ?? '');
+        $cpf = trim($_POST['cpf'] ?? null);
+        $telefone = trim($_POST['telefone'] ?? null);
+        $email = trim($_POST['email'] ?? null);
+        $data_nascimento = trim($_POST['data_nascimento'] ?? null);
+        $id_endereco = filter_input(INPUT_POST, 'id_endereco', FILTER_VALIDATE_INT);
+
+        if ($nome === '') { http_response_code(400); echo json_encode(['erro'=>'Nome é obrigatório.']); return; }
+
+        if ($email !== null && $email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) { http_response_code(400); echo json_encode(['erro'=>'E-mail inválido.']); return; }
+
+        try {
+            $sql = 'INSERT INTO pessoas (nome, cpf, telefone, email, data_nascimento, id_endereco)
+                    VALUES (:nome, :cpf, :telefone, :email, :data_nascimento, :id_endereco)';
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':nome', $nome);
+            $stmt->bindValue(':cpf', $cpf);
+            $stmt->bindValue(':telefone', $telefone);
+            $stmt->bindValue(':email', $email);
+            $stmt->bindValue(':data_nascimento', $data_nascimento);
+            $stmt->bindValue(':id_endereco', $id_endereco, PDO::PARAM_INT);
+            $stmt->execute();
+            http_response_code(201);
+            echo json_encode(['mensagem'=>'Pessoa cadastrada.', 'id'=>$this->pdo->lastInsertId()], JSON_UNESCAPED_UNICODE);
+        } catch (PDOException $e) {
+            http_response_code(500); echo json_encode(['erro'=>'Erro ao cadastrar pessoa.']);
+        }
+    }
+
+    public function atualizar(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $id = filter_input(INPUT_POST, 'id_pessoa', FILTER_VALIDATE_INT);
+        $nome = trim($_POST['nome'] ?? '');
+        $cpf = trim($_POST['cpf'] ?? null);
+        $telefone = trim($_POST['telefone'] ?? null);
+        $email = trim($_POST['email'] ?? null);
+        $data_nascimento = trim($_POST['data_nascimento'] ?? null);
+        $id_endereco = filter_input(INPUT_POST, 'id_endereco', FILTER_VALIDATE_INT);
+
+        if (!$id || $nome === '') { http_response_code(400); echo json_encode(['erro'=>'ID e nome são obrigatórios.']); return; }
+
+        if ($email !== null && $email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) { http_response_code(400); echo json_encode(['erro'=>'E-mail inválido.']); return; }
+
+        try {
+            $sql = 'UPDATE pessoas SET nome=:nome, cpf=:cpf, telefone=:telefone, email=:email, data_nascimento=:data_nascimento, id_endereco=:id_endereco WHERE id_pessoa = :id';
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':nome', $nome);
+            $stmt->bindValue(':cpf', $cpf);
+            $stmt->bindValue(':telefone', $telefone);
+            $stmt->bindValue(':email', $email);
+            $stmt->bindValue(':data_nascimento', $data_nascimento);
+            $stmt->bindValue(':id_endereco', $id_endereco, PDO::PARAM_INT);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            echo json_encode(['mensagem'=>'Pessoa atualizada.'], JSON_UNESCAPED_UNICODE);
+        } catch (PDOException $e) {
+            http_response_code(500); echo json_encode(['erro'=>'Erro ao atualizar pessoa.']);
+        }
+    }
+
+    public function excluir(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $id = filter_input(INPUT_POST, 'id_pessoa', FILTER_VALIDATE_INT);
+        if (!$id) { http_response_code(400); echo json_encode(['erro'=>'ID inválido.']); return; }
+
+        try {
+            $sql = 'DELETE FROM pessoas WHERE id_pessoa = :id';
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            echo json_encode(['mensagem'=>'Pessoa excluída.'], JSON_UNESCAPED_UNICODE);
+        } catch (PDOException $e) {
+            http_response_code(500); echo json_encode(['erro'=>'Erro ao excluir pessoa.']);
+        }
+    }
+}
