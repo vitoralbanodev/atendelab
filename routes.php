@@ -1,18 +1,44 @@
 <?php
-// Carrega o controller responsável pelos endpoints de usuários.
-// Observação: o arquivo no projeto está no singular (UsuarioController.php).
+require_once __DIR__ . '/app/Controllers/AuthController.php';
 require_once __DIR__ . '/app/Controllers/UsuariosController.php';
 require_once __DIR__ . '/app/Controllers/AtendimentosController.php';
 require_once __DIR__ . '/app/Controllers/EnderecoController.php';
 require_once __DIR__ . '/app/Controllers/PessoasController.php';
 require_once __DIR__ . '/app/Controllers/TipoAtendimentosController.php';
+require_once __DIR__ . '/app/Middleware/auth.php';
 
-// Define controller e action por query string.
-// Exemplo: ?controller=usuarios&action=listar
-$controller = $_GET['controller'] ?? 'home';
-$action = $_GET['action'] ?? 'index';
+$controller = $_GET['controller'] ?? 'auth';
+$action = $_GET['action'] ?? 'login';
 
-// Roteador simples que instância controllers suportados e chama ações CRUD.
+if ($controller === 'auth') {
+    $authController = new AuthController();
+    switch ($action) {
+        case 'login':
+            $authController->exibirLogin();
+            break;
+
+        case 'entrar':
+            $authController->entrar();
+            break;
+
+        case 'dashboard':
+            exigirAutenticacao();
+            $authController->dashboard();
+            break;
+
+        case 'logout':
+            $authController->logout();
+            break;
+
+        default:
+            http_response_code(404);
+            echo 'Ação de autenticação não encontrada.';
+            break;
+    }
+
+    exit;
+}
+
 $instance = null;
 switch ($controller) {
     case 'usuarios':
@@ -39,7 +65,6 @@ switch ($controller) {
         $instance = null;
 }
 
-if ($instance !== null) {
     switch ($action) {
         case 'listar':
             $instance->listar();
@@ -63,11 +88,7 @@ if ($instance !== null) {
             break;
 
         default:
-            echo 'Ação não encontrada para o controller informado.';
+            http_response_code(404);
+            echo 'Ação não encontrada para o controlador ' . htmlspecialchars($controller);
             break;
     }
-} else {
-    // Resposta básica para indicar que a aplicação está no ar.
-    echo '<h1>AtendeLab</h1>';
-    echo '<p>Projeto em execução. Use ?controller=usuarios&action=listar para testar.</p>';
-}
