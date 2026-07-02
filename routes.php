@@ -5,10 +5,11 @@ require_once __DIR__ . '/app/Controllers/AtendimentosController.php';
 require_once __DIR__ . '/app/Controllers/EnderecoController.php';
 require_once __DIR__ . '/app/Controllers/PessoasController.php';
 require_once __DIR__ . '/app/Controllers/TipoAtendimentosController.php';
+require_once __DIR__ . '/app/Controllers/DashboardController.php';
 require_once __DIR__ . '/app/Middleware/auth.php';
 
 $controller = $_GET['controller'] ?? 'auth';
-$action = $_GET['action'] ?? 'login';
+$action = $_GET['action'] ?? ($controller === 'auth' ? 'login' : 'index');
 
 if ($controller === 'auth') {
     $authController = new AuthController();
@@ -58,11 +59,24 @@ switch ($controller) {
         break;
 
     case 'tipo_atendimentos':
+    case 'tipoatendimentos':
+    case 'tipos':
+    case 'tipos-atendimentos':
         $instance = new TipoAtendimentosController();
+        break;
+
+    case 'dashboard':
+        $instance = new DashboardController();
         break;
 
     default:
         $instance = null;
+}
+
+if ($instance === null) {
+    http_response_code(404);
+    echo 'Controlador não encontrado.';
+    exit;
 }
 
     switch ($action) {
@@ -71,7 +85,6 @@ switch ($controller) {
             break;
 
         case 'buscar':
-            // padrão: buscar por ID via GET
             $instance->buscarPorId();
             break;
 
@@ -83,9 +96,31 @@ switch ($controller) {
             $instance->atualizar();
             break;
 
+        case 'inativar':
+            if (method_exists($instance, 'inativar')) {
+                $instance->inativar();
+                break;
+            }
+            // fall through to default if the method is not implemented
+
+        case 'alterarStatus':
+            if (method_exists($instance, 'alterarStatus')) {
+                $instance->alterarStatus();
+                break;
+            }
+            // fall through to default if the method is not implemented
+
         case 'excluir':
             $instance->excluir();
             break;
+
+        case 'index':
+            if (method_exists($instance, 'index')) {
+                exigirAutenticacao();
+                $instance->index();
+                break;
+            }
+            // fall through to default if the method is not implemented
 
         default:
             http_response_code(404);

@@ -37,7 +37,10 @@ CREATE TABLE `atendimentos` (
   `id_usuario` int(11) DEFAULT NULL,
   `data_atendimento` date DEFAULT NULL,
   `data_criacao` timestamp NOT NULL DEFAULT current_timestamp(),
-  `hora` time DEFAULT NULL
+  `hora` time DEFAULT NULL,
+  `status` enum('aberto','em_andamento','concluido') NOT NULL DEFAULT 'aberto',
+  `observacao_final` text DEFAULT NULL,
+  PRIMARY KEY (`id_atendimento`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -54,7 +57,8 @@ CREATE TABLE `endereco` (
   `bairro` varchar(100) NOT NULL,
   `cidade` varchar(100) NOT NULL,
   `estado` char(2) NOT NULL,
-  `cep` varchar(10) NOT NULL
+  `cep` varchar(10) NOT NULL,
+  PRIMARY KEY (`id_endereco`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -67,10 +71,16 @@ CREATE TABLE `pessoas` (
   `id_pessoa` int(11) NOT NULL,
   `nome` varchar(255) NOT NULL,
   `cpf` varchar(11) DEFAULT NULL,
+  `documento` varchar(20) DEFAULT NULL,
   `telefone` varchar(15) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
+  `curso` varchar(100) DEFAULT NULL,
+  `periodo` varchar(20) DEFAULT NULL,
+  `observacoes` text DEFAULT NULL,
+  `status` enum('ativo','inativo') DEFAULT 'ativo',
   `data_nascimento` date DEFAULT NULL,
-  `id_endereco` int(11) DEFAULT NULL
+  `id_endereco` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id_pessoa`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -84,7 +94,8 @@ CREATE TABLE `tipo_atendimentos` (
   `nome` varchar(255) DEFAULT NULL,
   `descricao` text DEFAULT NULL,
   `ativo` tinyint(1) DEFAULT 1,
-  `data_criacao` timestamp NOT NULL DEFAULT current_timestamp()
+  `data_criacao` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id_tipo_atendimento`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -124,6 +135,30 @@ ALTER TABLE `usuarios`
 --
 -- AUTO_INCREMENT para tabelas despejadas
 --
+
+--
+-- AUTO_INCREMENT de tabela `atendimentos`
+--
+ALTER TABLE `atendimentos`
+  MODIFY `id_atendimento` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `endereco`
+--
+ALTER TABLE `endereco`
+  MODIFY `id_endereco` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `pessoas`
+--
+ALTER TABLE `pessoas`
+  MODIFY `id_pessoa` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `tipo_atendimentos`
+--
+ALTER TABLE `tipo_atendimentos`
+  MODIFY `id_tipo_atendimento` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
