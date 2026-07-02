@@ -1,7 +1,7 @@
 <?php
 
-$titulo='Página: Atendimentos';
-require __DIR__ . '/../../layouts/header.php';
+$tituloPagina = 'Atendimentos';
+require __DIR__ . '/../layouts/header.php';
 ?>
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
@@ -20,21 +20,19 @@ require __DIR__ . '/../../layouts/header.php';
 <div id="alertas"></div>
 
 <div class="card border-0 shadow-sm mb-4 d-none" id="cardFormulario">
-  <div class="card-body">
-    <h2 class="h5">Novo atendimento</h2>
-    <p class="text-secondary mb-0">
-      Registre e acompanhamento dos atendimentos acadêmicos.
-    </p>
-  </div>
+    <div class="card-body">
+      <h2 class="h5">Novo atendimento</h2>
+      <p class="text-secondary mb-4">
+        Registre e acompanhamento dos atendimentos acadêmicos.
+      </p>
 
-  <form id="formAtendimentos">
-    <div class="row g-3">
-
+      <form id="formAtendimentos">
+        <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label">Pessoa </label>
         <select
           class="form-select"
-          name="pessoa_id"
+          name="id_pessoa"
           id="pessoaSelect"
           required
         ></select>
@@ -44,57 +42,61 @@ require __DIR__ . '/../../layouts/header.php';
         <label class="form-label">Tipo </label>
         <select
           class="form-select"
-          name="tipo_atendimento_id"
+          name="id_tipo_atendimento"
           id="tipoSelect"
           required
         ></select>
       </div>
 
-      <div class="col-md-4">
-        <label class="form-label">Data </label>
+      <div class="col-md-6">
+        <label class="form-label">Data *</label>
         <input
           class="form-control"
           type="date"
+          id="dataAtendimentoInput"
           name="data_atendimento"
           required
         />
       </div>
 
-      <div class="col-md-4">
-        <label class="form-label">Horário </label>
+      <div class="col-md-6">
+        <label class="form-label">Horário *</label>
         <input
           class="form-control"
           type="time"
+          id="horaAtendimentoInput"
           name="horario_atendimento"
           required
         />
       </div>
 
       <div class="col-12">
-        <label class="form-label">Observação inicial</label>
+        <label class="form-label">Observação inicial *</label>
         <textarea
           class="form-control"
+          id="observacaoAtendimentoInput"
           name="observacao_final"
           rows="3"
+          required
           placeholder="Use este campo para anotações iniciais"></textarea>
       </div>
 
-    </div>
+        <div class="col-12 d-flex justify-content-end gap-2 mt-3">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            onclick="fecharFormulario()"
+          >
+            Cancelar
+          </button>
 
-    <div class="modal-footer">
-      <button
-        type="button"
-        class="btn btn-outline-secondary"
-        onclick="fecharFormulario()"
-      >
-        Cancelar
-      </button>
-
-      <button class="btn btn-success" type="submit">
-        Salvar
-      </button>
-    </div>
-  </form>
+          <button class="btn btn-success" type="submit">
+            Salvar
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="card border-0 shadow-sm">
@@ -184,6 +186,8 @@ require __DIR__ . '/../../layouts/header.php';
   const formAtendimentos = document.getElementById('formAtendimentos');
   const tabelaAtendimentos = document.getElementById('tabelaAtendimentos');
   const cardFormulario = document.getElementById('cardFormulario');
+  const dataAtendimentoInput = document.getElementById('dataAtendimentoInput');
+  const horaAtendimentoInput = document.getElementById('horaAtendimentoInput');
 
   const statusModal = () => {
     return bootstrap.Modal.getOrCreateInstance(
@@ -192,6 +196,7 @@ require __DIR__ . '/../../layouts/header.php';
   };
 
   function novoAtendimento() {
+    setDateMin();
     cardFormulario.classList.remove('d-none');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -199,6 +204,10 @@ require __DIR__ . '/../../layouts/header.php';
   function fecharFormulario() {
     cardFormulario.classList.add('d-none');
     formAtendimentos.reset();
+  }
+
+  if (dataAtendimentoInput) {
+    dataAtendimentoInput.addEventListener('change', updateTimeMin);
   }
 
   function labelRegistro(obj, ...keys) {
@@ -293,7 +302,81 @@ require __DIR__ . '/../../layouts/header.php';
     statusModal().show();
   }
 
+  function getLocalIsoDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function setDateMin() {
+    if (dataAtendimentoInput) {
+      dataAtendimentoInput.min = getLocalIsoDate();
+      updateTimeMin();
+    }
+  }
+
+  function updateTimeMin() {
+    if (!dataAtendimentoInput || !horaAtendimentoInput) return;
+
+    const today = getLocalIsoDate();
+    if (dataAtendimentoInput.value === today) {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      horaAtendimentoInput.min = `${hours}:${minutes}`;
+    } else {
+      horaAtendimentoInput.removeAttribute('min');
+    }
+  }
+
+  function validateDateTime(dateValue, timeValue) {
+    if (!dateValue || !timeValue) return 'Data e horário são obrigatórios.';
+
+    const today = getLocalIsoDate();
+    if (dateValue < today) {
+      return 'A data não pode ser retroativa.';
+    }
+
+    if (dateValue === today) {
+      const [hour, minute] = timeValue.split(':').map(Number);
+      const now = new Date();
+      const selected = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute);
+      if (selected < now) {
+        return 'O horário não pode ser retroativo para a data de hoje.';
+      }
+    }
+
+    return null;
+  }
+
+  function validateStatusModal() {
+    const status = document.querySelector('#formStatus [name="status"]').value;
+    const observacao = document.querySelector('#formStatus [name="observacao_final"]').value.trim();
+    if (status === 'concluido' && observacao === '') {
+      return 'Observação final é obrigatória ao concluir.';
+    }
+    return null;
+  }
+
   formAtendimentos.addEventListener('submit', async event => {
+    event.preventDefault();
+
+    const dataInput = document.getElementById('dataAtendimentoInput');
+    const horaInput = document.getElementById('horaAtendimentoInput');
+    const observacaoInput = document.getElementById('observacaoAtendimentoInput');
+
+    const validationMessage = validateDateTime(dataInput.value, horaInput.value);
+    if (validationMessage) {
+      AtendeLabApi.showAlert('alertas', validationMessage, 'danger');
+      return;
+    }
+
+    if (observacaoInput.value.trim() === '') {
+      AtendeLabApi.showAlert('alertas', 'Observação inicial é obrigatória.', 'danger');
+      return;
+    }
     event.preventDefault();
 
     try {
@@ -309,6 +392,12 @@ require __DIR__ . '/../../layouts/header.php';
   document.getElementById('formStatus').addEventListener('submit', async event => {
     event.preventDefault();
 
+    const validationMessage = validateStatusModal();
+    if (validationMessage) {
+      AtendeLabApi.showAlert('alertas', validationMessage, 'danger');
+      return;
+    }
+
     try {
       await AtendeLabApi.post('atendimentos', 'alterarStatus', new FormData(event.target));
       statusModal().hide();
@@ -320,9 +409,10 @@ require __DIR__ . '/../../layouts/header.php';
   });
 
   document.addEventListener('DOMContentLoaded', async () => {
+    setDateMin();
     await carregarCombos();
     await carregarAtendimentos();
   });
 </script>
 
-<?php require __DIR__ . '/../../layouts/footer.php'; ?>
+<?php require __DIR__ . '/../layouts/footer.php'; ?>

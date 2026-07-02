@@ -81,17 +81,62 @@ class AtendimentosController
         header('Content-Type: application/json; charset=utf-8');
 
         $id_tipo = filter_input(INPUT_POST, 'id_tipo_atendimento', FILTER_VALIDATE_INT);
+        if (!$id_tipo) {
+            $id_tipo = filter_input(INPUT_POST, 'tipo_atendimento_id', FILTER_VALIDATE_INT);
+        }
         $id_pessoa = filter_input(INPUT_POST, 'id_pessoa', FILTER_VALIDATE_INT);
         $id_usuario = $_SESSION['usuario']['id'] ?? null;
         $data_atendimento = trim($_POST['data_atendimento'] ?? '');
         $hora = trim($_POST['horario_atendimento'] ?? null);
-        $observacao_final = trim($_POST['observacao_final'] ?? null);
+        $observacao_final = trim($_POST['observacao_final'] ?? '');
         $status = 'aberto';
 
-        if (!$id_tipo || !$id_pessoa || !$id_usuario || $data_atendimento === '') {
+        file_put_contents(__DIR__ . '/../../atendimento-debug.txt', json_encode([
+            'post' => $_POST,
+            'id_tipo' => $id_tipo,
+            'id_pessoa' => $id_pessoa,
+            'id_usuario' => $id_usuario,
+            'data_atendimento' => $data_atendimento,
+            'hora' => $hora,
+            'observacao_final' => $observacao_final,
+            'session' => $_SESSION['usuario'] ?? null,
+        ], JSON_UNESCAPED_UNICODE) . PHP_EOL, FILE_APPEND);
+
+        if (!$id_tipo || !$id_pessoa || !$id_usuario || $data_atendimento === '' || $hora === '' || $observacao_final === '') {
             http_response_code(400);
             echo json_encode(['erro' => 'Campos obrigatórios ausentes.']);
             return;
+        }
+
+        $dataObj = DateTimeImmutable::createFromFormat('Y-m-d', $data_atendimento);
+        if (!$dataObj || $dataObj->format('Y-m-d') !== $data_atendimento) {
+            http_response_code(400);
+            echo json_encode(['erro' => 'Data de atendimento inválida.']);
+            return;
+        }
+
+        $now = new DateTimeImmutable('now');
+        $today = $now->setTime(0, 0, 0);
+        if ($dataObj < $today) {
+            http_response_code(400);
+            echo json_encode(['erro' => 'A data não pode ser retroativa.']);
+            return;
+        }
+
+        $horaObj = DateTimeImmutable::createFromFormat('H:i', $hora);
+        if (!$horaObj || $horaObj->format('H:i') !== $hora) {
+            http_response_code(400);
+            echo json_encode(['erro' => 'Horário inválido.']);
+            return;
+        }
+
+        if ($dataObj == $today) {
+            $dateTime = $dataObj->setTime((int)$horaObj->format('H'), (int)$horaObj->format('i'));
+            if ($dateTime < $now) {
+                http_response_code(400);
+                echo json_encode(['erro' => 'O horário não pode ser retroativo para a data de hoje.']);
+                return;
+            }
         }
 
         try {
@@ -122,15 +167,52 @@ class AtendimentosController
 
         $id = filter_input(INPUT_POST, 'id_atendimento', FILTER_VALIDATE_INT);
         $id_tipo = filter_input(INPUT_POST, 'id_tipo_atendimento', FILTER_VALIDATE_INT);
+        if (!$id_tipo) {
+            $id_tipo = filter_input(INPUT_POST, 'tipo_atendimento_id', FILTER_VALIDATE_INT);
+        }
         $id_pessoa = filter_input(INPUT_POST, 'id_pessoa', FILTER_VALIDATE_INT);
+        if (!$id_pessoa) {
+            $id_pessoa = filter_input(INPUT_POST, 'pessoa_id', FILTER_VALIDATE_INT);
+        }
         $id_usuario = $_SESSION['usuario']['id'] ?? null;
         $data_atendimento = trim($_POST['data_atendimento'] ?? '');
         $hora = trim($_POST['horario_atendimento'] ?? null);
 
-        if (!$id || !$id_tipo || !$id_pessoa || !$id_usuario || $data_atendimento === '') {
+        if (!$id || !$id_tipo || !$id_pessoa || !$id_usuario || $data_atendimento === '' || $hora === '') {
             http_response_code(400);
             echo json_encode(['erro' => 'Campos obrigatórios ausentes.']);
             return;
+        }
+
+        $dataObj = DateTimeImmutable::createFromFormat('Y-m-d', $data_atendimento);
+        if (!$dataObj || $dataObj->format('Y-m-d') !== $data_atendimento) {
+            http_response_code(400);
+            echo json_encode(['erro' => 'Data de atendimento inválida.']);
+            return;
+        }
+
+        $now = new DateTimeImmutable('now');
+        $today = $now->setTime(0, 0, 0);
+        if ($dataObj < $today) {
+            http_response_code(400);
+            echo json_encode(['erro' => 'A data não pode ser retroativa.']);
+            return;
+        }
+
+        $horaObj = DateTimeImmutable::createFromFormat('H:i', $hora);
+        if (!$horaObj || $horaObj->format('H:i') !== $hora) {
+            http_response_code(400);
+            echo json_encode(['erro' => 'Horário inválido.']);
+            return;
+        }
+
+        if ($dataObj == $today) {
+            $dateTime = $dataObj->setTime((int)$horaObj->format('H'), (int)$horaObj->format('i'));
+            if ($dateTime < $now) {
+                http_response_code(400);
+                echo json_encode(['erro' => 'O horário não pode ser retroativo para a data de hoje.']);
+                return;
+            }
         }
 
         try {
@@ -164,11 +246,17 @@ class AtendimentosController
 
         $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT) ?: filter_input(INPUT_POST, 'id_atendimento', FILTER_VALIDATE_INT);
         $status = trim($_POST['status'] ?? '');
-        $observacao_final = trim($_POST['observacao_final'] ?? null);
+        $observacao_final = trim($_POST['observacao_final'] ?? '');
 
         if (!$id || !in_array($status, ['aberto', 'em_andamento', 'concluido'], true)) {
             http_response_code(400);
             echo json_encode(['erro' => 'ID ou status inválido.']);
+            return;
+        }
+
+        if ($status === 'concluido' && $observacao_final === '') {
+            http_response_code(400);
+            echo json_encode(['erro' => 'Observação final é obrigatória ao concluir.']);
             return;
         }
 

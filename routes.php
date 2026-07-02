@@ -103,6 +103,13 @@ if ($instance === null) {
             }
             // fall through to default if the method is not implemented
 
+        case 'ativar':
+            if (method_exists($instance, 'ativar')) {
+                $instance->ativar();
+                break;
+            }
+            // fall through to default if the method is not implemented
+
         case 'alterarStatus':
             if (method_exists($instance, 'alterarStatus')) {
                 $instance->alterarStatus();

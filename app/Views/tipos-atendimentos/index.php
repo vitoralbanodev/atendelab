@@ -36,8 +36,8 @@ require __DIR__ . '/../layouts/header.php';
         </div>
 
         <div class="col-md-12">
-          <label class="form-label">Descrição</label>
-          <textarea class="form-control" name="descricao" rows="2"></textarea>
+          <label class="form-label">Descrição *</label>
+          <textarea class="form-control" name="descricao" rows="2" required></textarea>
         </div>
       </div>
 
@@ -109,6 +109,7 @@ require __DIR__ . '/../layouts/header.php';
 
       tabelaTipos.innerHTML = tipos.map(tipo => {
         const classeStatus = tipo.status === 'ativo' ? 'text-bg-success' : 'text-bg-secondary';
+        const estaAtivo = tipo.status === 'ativo';
 
         return `
           <tr>
@@ -119,7 +120,7 @@ require __DIR__ . '/../layouts/header.php';
             </td>
             <td class="text-end">
               <button type="button" class="btn btn-sm btn-outline-primary" onclick="editarTipo(${Number(tipo.id_tipo_atendimento)})">Editar</button>
-              <button type="button" class="btn btn-sm btn-outline-danger" onclick="inativarTipo(${Number(tipo.id_tipo_atendimento)})">Inativar</button>
+              <button type="button" class="btn btn-sm ${estaAtivo ? 'btn-outline-danger' : 'btn-outline-success'}" onclick="${estaAtivo ? 'inativarTipo' : 'ativarTipo'}(${Number(tipo.id_tipo_atendimento)})">${estaAtivo ? 'Inativar' : 'Ativar'}</button>
             </td>
           </tr>
         `;
@@ -170,6 +171,19 @@ require __DIR__ . '/../layouts/header.php';
     try {
       await AtendeLabApi.post('tipo_atendimentos', 'inativar', { id_tipo_atendimento: id });
       AtendeLabApi.showAlert('alerta', 'Tipo inativado com sucesso.', 'success');
+      await carregarTipos();
+    } catch (error) {
+      AtendeLabApi.showAlert('alerta', error.message, 'danger');
+    }
+  }
+
+  async function ativarTipo(id) {
+    const confirmou = confirm('Deseja realmente ativar este tipo?');
+    if (!confirmou) return;
+
+    try {
+      await AtendeLabApi.post('tipo_atendimentos', 'ativar', { id_tipo_atendimento: id });
+      AtendeLabApi.showAlert('alerta', 'Tipo ativado com sucesso.', 'success');
       await carregarTipos();
     } catch (error) {
       AtendeLabApi.showAlert('alerta', error.message, 'danger');

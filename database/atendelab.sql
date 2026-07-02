@@ -71,7 +71,6 @@ CREATE TABLE `pessoas` (
   `id_pessoa` int(11) NOT NULL,
   `nome` varchar(255) NOT NULL,
   `cpf` varchar(11) DEFAULT NULL,
-  `documento` varchar(20) DEFAULT NULL,
   `telefone` varchar(15) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `curso` varchar(100) DEFAULT NULL,
@@ -80,7 +79,9 @@ CREATE TABLE `pessoas` (
   `status` enum('ativo','inativo') DEFAULT 'ativo',
   `data_nascimento` date DEFAULT NULL,
   `id_endereco` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id_pessoa`)
+  PRIMARY KEY (`id_pessoa`),
+  UNIQUE KEY `cpf` (`cpf`),
+  UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------

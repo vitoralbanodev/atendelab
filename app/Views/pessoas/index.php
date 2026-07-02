@@ -19,7 +19,7 @@ require __DIR__ . '/../layouts/header.php';
     <h2 class="h5" id="tituloFormulario">Nova pessoa</h2>
 
     <form id="formPessoa">
-      <input type="hidden" name="id" id="pessoaId">
+      <input type="hidden" name="id_pessoa" id="pessoaId">
       <div class="row g-3">
         <div class="col-md-6">
           <label class="form-label">Nome *</label>
@@ -27,8 +27,8 @@ require __DIR__ . '/../layouts/header.php';
         </div>
 
         <div class="col-md-3">
-          <label class="form-label">Documento *</label>
-          <input class="form-control" name="documento" required>
+          <label class="form-label">CPF *</label>
+          <input class="form-control" id="cpfInput" name="cpf" maxlength="14" required>
         </div>
 
         <div class="col-md-3">
@@ -36,12 +36,12 @@ require __DIR__ . '/../layouts/header.php';
           <input class="form-control" name="telefone">
         </div>
 
-        <div class="col-md-6">
+        <div class="col-md-4">
           <label class="form-label">E-mail *</label>
           <input class="form-control" type="email" name="email" required>
         </div>
 
-        <div class="col-md-3">
+        <div class="col-md-4">
           <label class="form-label">Curso</label>
           <input class="form-control" name="curso">
         </div>
@@ -52,8 +52,8 @@ require __DIR__ . '/../layouts/header.php';
         </div>
 
         <div class="col-md-12">
-          <label class="form-label">Observações</label>
-          <textarea class="form-control" name="observacoes" rows="2"></textarea>
+          <label class="form-label">Observações *</label>
+          <textarea class="form-control" name="observacoes" rows="2" required></textarea>
         </div>
 
         <div class="col-md-3">
@@ -79,7 +79,7 @@ require __DIR__ . '/../layouts/header.php';
       <thead class="table-light">
         <tr>
           <th>Nome</th>
-          <th>Documento</th>
+          <th>CPF</th>
           <th>E-mail</th>
           <th>Curso</th>
           <th>Período</th>
@@ -99,6 +99,15 @@ require __DIR__ . '/../layouts/header.php';
 <script>
   const formPessoa = document.getElementById('formPessoa');
   const cardFormulario = document.getElementById('cardFormulario');
+  const cpfInput = document.getElementById('cpfInput');
+
+  function formatCPF(value) {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    return digits
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3}\.\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3}\.\d{3}\.\d{3})(\d{1,2})$/, '$1-$2');
+  }
 
   function abrirFormulario() {
     cardFormulario.classList.remove('d-none');
@@ -130,14 +139,14 @@ require __DIR__ . '/../layouts/header.php';
       tbody.innerHTML = dados.map(p => `
         <tr>
           <td>${AtendeLabApi.escape(p.nome)}</td>
-          <td>${AtendeLabApi.escape(p.documento)}</td>
+          <td>${AtendeLabApi.escape(formatCPF(String(p.cpf || '')))}</td>
           <td>${AtendeLabApi.escape(p.email)}</td>
           <td>${AtendeLabApi.escape(p.curso || '')}</td>
           <td>${AtendeLabApi.escape(p.periodo || '')}</td>
           <td><span class="badge ${p.status === 'ativo' ? 'text-bg-success' : 'text-bg-secondary'}">${AtendeLabApi.escape(p.status)}</span></td>
           <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary" type="button" onclick="editarPessoa(${Number(p.id)})">Editar</button>
-            <button class="btn btn-sm btn-outline-danger" type="button" onclick="inativarPessoa(${Number(p.id)})">Inativar</button>
+            <button class="btn btn-sm btn-outline-primary" type="button" onclick="editarPessoa(${Number(p.id_pessoa)})">Editar</button>
+            <button class="btn btn-sm btn-sm ${p.status === 'ativo' ? 'btn-outline-danger' : 'btn-outline-success'}" type="button" onclick="${p.status === 'ativo' ? 'inativarPessoa' : 'ativarPessoa'}(${Number(p.id_pessoa)})">${p.status === 'ativo' ? 'Inativar' : 'Ativar'}</button>
           </td>
         </tr>`).join('');
     } catch (error) {
@@ -153,17 +162,32 @@ require __DIR__ . '/../layouts/header.php';
 
       for (const [key, value] of Object.entries(p)) {
         const field = formPessoa.elements.namedItem(key);
-        if (field) field.value = value ?? '';
+        if (!field) continue;
+        if (key === 'cpf') {
+          field.value = formatCPF(String(value ?? ''));
+          continue;
+        }
+        field.value = value ?? '';
       }
     } catch (error) {
       AtendeLabApi.showAlert('alerta', error.message, 'danger');
     }
   }
 
+  if (cpfInput) {
+    cpfInput.addEventListener('input', event => {
+      const target = event.target;
+      target.value = formatCPF(target.value);
+    });
+  }
+
   formPessoa.addEventListener('submit', async event => {
     event.preventDefault();
 
     const id = document.getElementById('pessoaId').value;
+    if (cpfInput) {
+      cpfInput.value = cpfInput.value.replace(/\D/g, '');
+    }
 
     try {
       await AtendeLabApi.post('pessoas', id ? 'atualizar' : 'criar', new FormData(formPessoa));
@@ -181,6 +205,18 @@ require __DIR__ . '/../layouts/header.php';
     try {
       await AtendeLabApi.post('pessoas', 'inativar', { id });
       AtendeLabApi.showAlert('alerta', 'Pessoa inativada com sucesso.', 'success');
+      await carregarPessoas();
+    } catch (error) {
+      AtendeLabApi.showAlert('alerta', error.message, 'danger');
+    }
+  }
+
+  async function ativarPessoa(id) {
+    if (!confirm('Deseja ativar esta pessoa?')) return;
+
+    try {
+      await AtendeLabApi.post('pessoas', 'ativar', { id });
+      AtendeLabApi.showAlert('alerta', 'Pessoa ativada com sucesso.', 'success');
       await carregarPessoas();
     } catch (error) {
       AtendeLabApi.showAlert('alerta', error.message, 'danger');

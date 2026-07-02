@@ -48,6 +48,7 @@ class TipoAtendimentosController
         $ativo = $status === 'ativo' ? 1 : 0;
 
         if ($nome === '') { http_response_code(400); echo json_encode(['erro'=>'Nome é obrigatório.']); return; }
+        if ($descricao === '') { http_response_code(400); echo json_encode(['erro'=>'Descrição é obrigatória.']); return; }
         if (!in_array($status, ['ativo','inativo'], true)) { http_response_code(400); echo json_encode(['erro'=>'Status inválido.']); return; }
 
         try {
@@ -74,6 +75,7 @@ class TipoAtendimentosController
         $ativo = $status === 'ativo' ? 1 : 0;
 
         if (!$id || $nome === '') { http_response_code(400); echo json_encode(['erro'=>'ID e nome são obrigatórios.']); return; }
+        if ($descricao === '') { http_response_code(400); echo json_encode(['erro'=>'Descrição é obrigatória.']); return; }
         if (!in_array($status, ['ativo','inativo'], true)) { http_response_code(400); echo json_encode(['erro'=>'Status inválido.']); return; }
 
         try {
@@ -104,6 +106,23 @@ class TipoAtendimentosController
             echo json_encode(['mensagem'=>'Tipo de atendimento inativado.'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             http_response_code(500); echo json_encode(['erro'=>'Erro ao inativar tipo de atendimento.']);
+        }
+    }
+
+    public function ativar(): void
+    {
+        header('Content-Type: application/json; charset=utf-8');
+        $id = filter_input(INPUT_POST, 'id_tipo_atendimento', FILTER_VALIDATE_INT) ?: filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+        if (!$id) { http_response_code(400); echo json_encode(['erro'=>'ID inválido.']); return; }
+
+        try {
+            $sql = 'UPDATE tipo_atendimentos SET ativo = 1 WHERE id_tipo_atendimento = :id';
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            echo json_encode(['mensagem'=>'Tipo de atendimento ativado.'], JSON_UNESCAPED_UNICODE);
+        } catch (PDOException $e) {
+            http_response_code(500); echo json_encode(['erro'=>'Erro ao ativar tipo de atendimento.']);
         }
     }
 
